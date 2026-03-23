@@ -3,12 +3,12 @@ import { createRequestHandler } from "@react-router/express";
 
 const app = express();
 
-// 1. Serve static assets from the client build
+// Serve static assets from the client build
 app.use(express.static("build/client"));
 
-// 2. Handle all other requests through React Router
+// The "all" route needs a slightly different syntax in Express 5
 app.all(
-  "*",
+  "(.*)", // Changed from "*" to "(.*)" to satisfy the new path-to-regexp rules
   createRequestHandler({
     build: await import("./build/server/index.js"),
   })
