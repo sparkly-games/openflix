@@ -43,7 +43,7 @@ export default function Search() {
             <div className="overflow-hidden rounded-md aspect-[2/3] bg-zinc-900 shadow-lg">
             <Link to={`/movie/${movie.id}`} className="block transition-transform hover:scale-105">
                   <img 
-                    src={`${PROXY}?path=/t/p/w500${movie.poster_path}`} 
+                    src={`${PROXY}?image=true&path=/t/p/w500${movie.poster_path}`} 
                     alt={movie.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-110"
                     loading="lazy"

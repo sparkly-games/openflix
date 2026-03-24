@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // 1. Handle CORS Preflight
+  // 1. Handle Preflight (CORS)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -14,33 +14,46 @@ serve(async (req) => {
   try {
     const url = new URL(req.url)
     const path = url.searchParams.get('path')
-    
+    const isImage = url.searchParams.get('image') === 'true'
+
     if (!path) {
-      return new Response(JSON.stringify({ error: 'Missing path' }), { 
+      return new Response(JSON.stringify({ error: 'Missing path parameter' }), { 
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       })
     }
 
-    // 2. Clone the search params and remove 'path' to get the TMDB params (like query, page, etc.)
-    const tmdbParams = new URLSearchParams(url.searchParams)
-    tmdbParams.delete('path')
+    // 2. Route the request: Image Server vs API Server
+    const tmdbUrl = isImage 
+      ? `https://image.tmdb.org/t/p/original${path}`
+      : `https://api.themoviedb.org/3${path}?${url.searchParams.toString()}`
 
-    // 3. Construct TMDB URL
-    const isImage = path.startsWith('/t/p/')
-    const base = isImage ? 'https://image.tmdb.org' : 'https://api.themoviedb.org/3'
-    const finalUrl = `${base}${path}${tmdbParams.toString() ? '?' + tmdbParams.toString() : ''}`
-
-    // 4. Fetch from TMDB
-    const response = await fetch(finalUrl, {
-      headers: {
+    const response = await fetch(tmdbUrl, {
+      headers: { 
         Authorization: `Bearer ${Deno.env.get('TMDB_TOKEN')}`,
-      },
+        Accept: isImage ? 'image/*' : 'application/json'
+      }
     })
 
-    // 5. Proxy the response back
-    const contentType = response.headers.get('Content-Type') || 'application/json'
-    return new Response(response.body, {
-      headers: { ...corsHeaders, 'Content-Type': contentType }
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: 'TMDB Fetch Failed' }), { 
+        status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
+    }
+
+    // 3. Handle the Body (Images must be blobs, JSON can be text)
+    const body = isImage ? await response.blob() : await response.text()
+
+    // 4. Return the Final Response with forced Content-Type
+    return new Response(body, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        // CRITICAL: This fixes the "invisible image" bug
+        'Content-Type': isImage ? 'image/jpeg' : 'application/json',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cross-Origin-Embedder-Policy': 'credentialless',
+        'Cache-Control': 'public, max-age=31536000', // Cache images for 1 year
+      }
     })
 
   } catch (err) {
