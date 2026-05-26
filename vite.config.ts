@@ -4,16 +4,25 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  plugins: [
+    tailwindcss(),
+    reactRouter(),
+    tsconfigPaths(),
+  ],
+
   base: "/functions/v1/ui-proxy/",
 
   server: {
-    host: "0.0.0.0",
+    host: true,
     allowedHosts: true,
   },
 
   preview: {
-    host: "0.0.0.0",
+    host: true,
     allowedHosts: true,
+  },
+
+  ssr: {
+    noExternal: ["react", "react-dom"],
   },
 });
