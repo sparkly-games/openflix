@@ -1,0 +1,19 @@
+# Exported from Render on 2026-05-26T14:32:51Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: openflix
+      runtime: node
+      repo: https://github.com/sparkly-games/openflix
+      plan: free
+      envVars:
+      - key: .env
+        sync: false
+      region: oregon
+      buildCommand: npm install; npm run build
+      startCommand: npm run start
+      autoDeployTrigger: commit
